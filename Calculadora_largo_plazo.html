@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculadora de Financiación</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+    <style>
+        .result-header {
+            text-align: center;
+            padding: 20px;
+            background: #003057;
+            color: white;
+            border-radius: 8px 8px 0 0;
+            position: relative;
+            display: none;
+            font-weight: 700;
+            font-size: 28px;
+        }
+
+        .result-card {
+            background-color: #FFFFFF;
+            border: 1px solid #dcdcdc;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .payment-option-card {
+            background-color: #e6f7f7;
+            border: 1px solid #cde4e4;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background: linear-gradient(to right, #003057, #8ae5d9);
+            color: #003057;
+            margin: 0;
+            padding: 0;
+            display: block;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 50px auto;
+            background: #ffffff;
+            padding: 50px;
+            border-radius: 12px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header {
+            text-align: center;
+            padding: 20px;
+            background: #003057;
+            color: white;
+            border-radius: 8px 8px 0 0;
+            position: relative;
+        }
+        .header img {
+            width: 120px;
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+        .header h1 {
+            font-weight: 700;
+            font-size: 28px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin: 15px 90px 5px;
+            font-weight: 700;
+            color: #003057;
+            font-size: 18px;
+            max-width: 600px;
+        }
+
+        input, select {
+            width: 100%;
+            max-width: 600px;
+            padding: 10px;
+            margin: 10px 90px 20px;
+            border: 1px solid #dcdcdc;
+            border-radius: 6px;
+            box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
+            transition: border-color 0.3s, box-shadow 0.3s;
+            display: block;
+        }
+        input:focus, select:focus {
+            border-color: #8ae5d9;
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .button {
+            display: flex;
+            align-items: center;
+            background-color: #FFFFFF;
+            border-radius: 30px;
+            padding: 10px 20px;
+            justify-content: center;
+            transition: transform 0.3s ease, color 0.6s ease, border-color 0.6s ease;
+            margin: 15px auto 0 auto;
+            position: relative;
+            overflow: hidden;
+            color: #8ae5d9;
+            font-weight: bold;
+            text-align: center;
+            text-decoration: none;
+            font-size: 18px;
+            z-index: 1;
+            border: 2px solid #8ae5d9;
+            cursor: pointer;
+        }
+
+        .button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #8ae5d9;
+            transform: scaleX(0);
+            transform-origin: left;
+            transition: transform 0.6s ease;
+            z-index: -1;
+        }
+
+        .button:hover {
+            transform: scale(1.05);
+            color: #FFFFFF;
+        }
+
+        .button:hover::before {
+            transform: scaleX(1);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Calculadora de Financiación</h1>
+            <img src="logo_blanco.png" alt="Logo">
+        </div>
+        <form id="financingForm">
+            <div class="form-group">
+                <label for="razonSocial">Razón Social</label>
+                <input type="text" id="razonSocial" name="razonSocial" required>
+            </div>
+            <div class="form-group">
+                <label for="direccion">Dirección</label>
+                <input type="text" id="direccion" name="direccion" required>
+            </div>
+            <div class="form-group">
+                <label for="nif">Nº de Identificación Fiscal</label>
+                <input type="text" id="nif" name="nif" required>
+            </div>
+            <div class="form-group">
+                <label for="importeProyecto">Importe del Proyecto</label>
+                <input type="number" id="importeProyecto" name="importeProyecto" required>
+            </div>
+            <div class="form-group">
+                <label for="plazoMeses">Plazo en Meses</label>
+                <select id="plazoMeses" name="plazoMeses" required>
+                    <option value="12">AZUD 12</option>
+                    <option value="18">AZUD 18</option>
+                    <option value="24">AZUD 24</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="interes">Interés (%)</label>
+                <input type="number" id="interes" name="interes" min="0" max="10" step="0.5" required>
+                <small id="interesHint" style="color: grey; font-size: 16px; margin-left:90px;"></small>
+            </div>
+            <div class="form-group">
+                <label for="fechaVencimiento">Fecha de Vencimiento</label>
+                <input type="date" id="fechaVencimiento" name="fechaVencimiento" required>
+            </div>
+            <button type="button" class="button" id="calculateButton">Calcular Financiación</button>
+        </form>
+
+        <h3 class="result-header" id="resultHeader">Resultado de la Financiación</h3>
+        <div id="result" class="result-container"></div>
+    </div>
+    <script>
+        let condiciones = {};
+
+        function loadCSV() {
+            fetch('/base_proyectos.csv')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('No se pudo cargar el archivo CSV. Verifique que la ruta sea correcta.');
+                    }
+                    return response.text();
+                })
+                .then(csvData => {
+                    Papa.parse(csvData, {
+                        download: false,
+                        header: true,
+                        complete: function(results) {
+                            condiciones = {}; // Resetear condiciones antes de cargar nuevos datos
+                            results.data.forEach(row => {
+                                if (row.Financiacion && row.Interes && row.Minimo && row.Pago_previo) {
+                                    const financiacionKey = row.Financiacion;
+                                    condiciones[financiacionKey] = {
+                                    interes: parseFloat(row.Interes.replace(',', '.')) * 100,
+                                        minImporte: parseFloat(row.Minimo),
+                                        minAporte: parseFloat(row.Pago_previo.replace(',', '.'))
+                                    };
+                                }
+                            });
+                        },
+                        error: function(error) {
+                            console.error("Error al analizar el archivo CSV: ", error);
+                            document.getElementById('result').innerHTML = "Error al analizar el archivo CSV.";
+                        }
+                    });
+                })
+                .catch(error => {
+                    console.error("Error al cargar el archivo CSV: ", error);
+                    document.getElementById('result').innerHTML = "Error al cargar el archivo CSV.";
+                });
+        }
+
+        loadCSV();
+
+        document.getElementById('plazoMeses').addEventListener('change', function () {
+            const plazoMeses = parseInt(document.getElementById('plazoMeses').value);
+            const condicionKey = `AZUD ${plazoMeses}`;
+            const condicion = condiciones[condicionKey];
+
+            if (condicion) {
+                document.getElementById('interes').value = condicion.interes.toFixed(2);
+                document.getElementById('interesHint').textContent = `Interés recomendado por AZUD: ${(condicion.interes).toFixed(2)}%`;
+            }
+        });
+
+        document.getElementById('calculateButton').addEventListener('click', function () {
+            const razonSocial = document.getElementById('razonSocial').value;
+            const direccion = document.getElementById('direccion').value;
+            const nif = document.getElementById('nif').value;
+            const importeProyecto = parseFloat(document.getElementById('importeProyecto').value);
+            const plazoMeses = parseInt(document.getElementById('plazoMeses').value);
+            const interes = parseFloat(document.getElementById('interes').value);
+            const fechaVencimiento = document.getElementById('fechaVencimiento').value;
+
+            const condicionKey = `AZUD ${plazoMeses}`;
+            const condicion = condiciones[condicionKey];
+            if (!condicion || importeProyecto < condicion.minImporte) {
+                document.getElementById('result').innerHTML = `El importe del proyecto no cumple el importe mínimo para el plazo ${condicionKey}`;
+                return;
+            }
+
+            document.getElementById('resultHeader').style.display = 'block';
+
+            const importeAporte = importeProyecto * parseFloat(condicion.minAporte);
+            const importeCredito = importeProyecto - importeAporte;
+            const interesTotal = (interes / 100) * (plazoMeses / 12) * importeCredito;
+            const importeTotal = importeCredito + interesTotal;
+
+            const opcionesPago = [];
+            if (plazoMeses === 12) {
+                opcionesPago.push({ tipo: 'Trimestral', cuotas: 4, cuota: importeTotal / 4 });
+                opcionesPago.push({ tipo: 'Semestral', cuotas: 2, cuota: importeTotal / 2 });
+                opcionesPago.push({ tipo: '50% a los 9 meses y 50% a los 12 meses', cuotas: 2, cuota: importeTotal / 2 });
+            } else if (plazoMeses === 18) {
+                opcionesPago.push({ tipo: 'Trimestral', cuotas: 6, cuota: importeTotal / 6 });
+                opcionesPago.push({ tipo: 'Semestral', cuotas: 3, cuota: importeTotal / 3 });
+            } else if (plazoMeses === 24) {
+                opcionesPago.push({ tipo: 'Trimestral', cuotas: 8, cuota: importeTotal / 8 });
+                opcionesPago.push({ tipo: 'Semestral', cuotas: 4, cuota: importeTotal / 4 });
+            }
+
+            let resultadoHTML = `
+                <div class="result-card">
+                    <p><strong>Razón Social:</strong> ${razonSocial}</p>
+                    <p><strong>Dirección:</strong> ${direccion}</p>
+                    <p><strong>NIF:</strong> ${nif}</p>
+                    <p><strong>Importe del Proyecto:</strong> ${importeProyecto.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €</p>
+                    <p><strong>Importe del Pago Previo (15%):</strong> ${importeAporte.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €</p>
+                    <p><strong>Importe a Crédito:</strong> ${importeCredito.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €</p>
+                    <p><strong>Interés Total:</strong> ${interesTotal.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €</p>
+                    <p><strong>Importe Total a Pagar:</strong> ${importeTotal.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €</strong></p>
+                </div>
+                <h4 style="font-size:24px;">Alternativas de Financiación:</h4>
+            `;
+
+            opcionesPago.forEach(opcion => {
+                resultadoHTML += `
+                    <div class="payment-option-card">
+                        <p><strong>Tipo de Pago:</strong> ${opcion.tipo}</p>
+                        <p><strong>Cuotas:</strong> ${opcion.cuotas}</p>
+                        <p><strong>Importe de Cada Cuota:</strong> ${opcion.cuota.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €</p>
+                    </div>
+                `;
+            });
+
+            document.getElementById('result').innerHTML = resultadoHTML;
+        });
+    </script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+

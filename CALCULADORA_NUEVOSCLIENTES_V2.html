@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculadora de Financiación para Clientes Nuevos</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+    <style>
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background: linear-gradient(to right, #003057, #8ae5d9);
+            color: #003057;
+            margin: 0;
+            padding: 0;
+            display: block;
+        }
+        .container {
+            max-width: 800px;
+            margin: 50px auto;
+            background: #ffffff;
+            padding: 50px;
+            border-radius: 12px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+        .header {
+            text-align: center;
+            padding: 20px;
+            background: #003057;
+            color: white;
+            border-radius: 8px 8px 0 0;
+            position: relative;
+        }
+        .header img {
+            width: 120px;
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+        .header h2 {
+            font-weight: 700;
+            font-size: 28px;
+        }
+        label {
+            display: block;
+            margin: 15px 90px 5px;
+            font-weight: 700;
+            color: #003057;
+            font-size: 18px;
+            max-width: 600px;
+        }
+        input, select {
+            width: 100%;
+            max-width: 600px;
+            padding: 10px;
+            margin: 10px 90px 20px;
+            border: 1px solid #dcdcdc;
+            border-radius: 6px;
+            box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
+            transition: border-color 0.3s, box-shadow 0.3s;
+            display: block;
+        }
+        input:focus, select:focus {
+            border-color: #8ae5d9;
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+        }
+        .button {
+            background-color: #003057;
+            color: white;
+            padding: 15px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 700;
+            transition: background-color 0.3s;
+            display: block;
+            margin: 30px auto 0;
+            max-width: 600px;
+            font-size: 18px;
+        }
+        .button:hover {
+            background-color: #8ae5d9;
+        }
+        .card {
+            border: 1px solid #dcdcdc;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 25px;
+            background-color: #ffffff;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .card.success {
+            border-left: 6px solid #8ae5d9;
+        }
+        .image-gallery {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px auto;
+            max-width: 600px;
+        }
+        .image-gallery img {
+            width: 200px;
+            height: 133px;
+            object-fit: contain;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>Calculadora Nuevos Clientes</h2>
+            <img src="logo_blanco.png" alt="Logo de la empresa">
+        </div>
+        <form id="financingForm">
+            <label for="areaGeografica">Área Geográfica</label>
+            <select id="areaGeografica" onchange="updateCountryOptions()">
+                <!-- Se llenará dinámicamente desde el CSV -->
+            </select>
+
+            <label for="pais">País</label>
+            <select id="pais" onchange="updateCIFLabel()">
+                <!-- Se llenará dinámicamente según el área geográfica -->
+            </select>
+
+            <label id="cifLabel" for="cif">CIF</label>
+            <input type="text" id="cif" required>
+
+            <label for="razonSocial">Razón Social</label>
+            <input type="text" id="razonSocial" required>
+
+            <label for="potencialVentas">Potencial de Ventas (€)</label>
+            <input type="number" id="potencialVentas" max="999999999" required>
+
+            <label for="terminoPagoSolicitado">Término de Pago Solicitado</label>
+            <select id="terminoPagoSolicitado">
+                <option value="30">30D</option>
+                <option value="60">60D</option>
+                <option value="90">90D</option>
+                <option value="120">120D</option>
+                <option value="150">150D</option>
+                <option value="180">180D</option>
+                <option value="210">210D</option>
+                <option value="240">240D</option>
+                <option value="270">270D</option>
+            </select>
+
+            <label for="concentracionCompras">Concentración de Compras</label>
+            <select id="concentracionCompras">
+                <option value="A">Ventas lineales (repartidas equitativamente a lo largo del año)</option>
+                <option value="B">Ventas mixtas (Entre 40% y 80% en 2 meses)</option>
+                <option value="C">Concentradas (mayor o igual a 80% en 2 meses)</option>
+            </select>
+
+            <div class="image-gallery">
+                <img src="ventas_lineales.png" alt="Ventas Lineales">
+                <img src="ventas_mixtas.png" alt="Ventas Mixtas">
+                <img src="ventas_concentradas.png" alt="Ventas Concentradas">
+            </div>
+
+            <button type="button" class="button" onclick="calculateFinancing()">Calcular Financiación</button>
+        </form>
+
+        <div id="result"></div>
+    </div>
+
+    <script>
+        let data = [];
+
+        // Cargar el CSV utilizando PapaParse
+        Papa.parse("maestro_areas.csv", {
+            download: true,
+            header: true,
+            complete: function(results) {
+                data = results.data;
+                populateAreaGeografica();
+            }
+        });
+
+        function populateAreaGeografica() {
+            const areaGeograficaSelect = document.getElementById('areaGeografica');
+            const areas = [...new Set(data.map(item => item.Área))]; // Obtener áreas únicas
+
+            areas.forEach(area => {
+                const option = document.createElement('option');
+                option.value = area;
+                option.textContent = area;
+                areaGeograficaSelect.appendChild(option);
+            });
+
+            updateCountryOptions(); // Llenar los países para la primera área seleccionada
+        }
+
+        function updateCountryOptions() {
+            const areaGeografica = document.getElementById('areaGeografica').value;
+            const paisSelect = document.getElementById('pais');
+
+            // Limpiar las opciones actuales
+            paisSelect.innerHTML = '';
+
+            // Filtrar países según el área geográfica seleccionada
+            const countries = data.filter(item => item.Área === areaGeografica);
+
+            countries.forEach(country => {
+                const option = document.createElement('option');
+                option.value = country.País;
+                option.textContent = country.País;
+                paisSelect.appendChild(option);
+            });
+
+            updateCIFLabel(); // Actualizar el label del CIF según el país seleccionado
+        }
+
+        function updateCIFLabel() {
+            const pais = document.getElementById('pais').value;
+            const codigoFiscal = data.find(item => item.País === pais)?.CódigoFiscal;
+
+            // Cambiar el NOMBRE (texto visible) del label según el país seleccionado
+            const cifLabel = document.getElementById('cifLabel');
+            cifLabel.textContent = codigoFiscal ? codigoFiscal : 'Número de Identificación Fiscal';
+        }
+
+        // Llamar a la función para inicializar las opciones del país al cargar la página
+        window.onload = function() {
+            // El Papa.parse ya inicializa las áreas y luego se llaman a las otras funciones.
+        };
+        function calculateFinancing() {
+			document.getElementById("result").innerHTML = '<div class="header" style="margin-top:20px";><h2>Resultados ofrecidos: Elige la alternativa</h2></div>';
+            const potencialVentas = parseFloat(document.getElementById("potencialVentas").value);
+            const terminoPagoSolicitado = parseInt(document.getElementById("terminoPagoSolicitado").value);
+            const areaGeografica = document.getElementById("areaGeografica").value;
+			const pais = document.getElementById("pais").value;
+
+			// Parametrización del valor según el área geográfica y el país
+			let areaGeograficaParametrizada;
+
+			if (pais === "España") {
+				areaGeograficaParametrizada = "España";
+			} else if (areaGeografica === "Europa") {
+				areaGeograficaParametrizada = "UE";
+			} else {
+				areaGeograficaParametrizada = "Export";
+			}
+
+			// areaGeograficaParametrizada tendrá ahora el valor adecuado según la selección
+			console.log(areaGeograficaParametrizada);
+            const concentracionCompras = document.getElementById("concentracionCompras").value;
+			const form = document.getElementById('financingForm');
+
+			if (!form.checkValidity()) {
+				alert('Por favor, completa todos los campos obligatorios antes de calcular la financiación.');
+				return;
+				}
+		    // Si el término de pago solicitado es 240D o 270D, mostrar directamente la alternativa de contactar con crédito
+			if (terminoPagoSolicitado === 240 || terminoPagoSolicitado === 270) {
+				document.getElementById("result").innerHTML = `<div class="header" style="margin-top:20px"><h2>Resultados ofrecidos: Elige la alternativa</h2></div>` + `<div class="card">
+																  <h3>Alternativa: Contacta con Crédito</h3>
+																  <p>Debido al término de pago solicitado, es necesario contactar con el departamento de crédito.</p>
+																  <button class="button" onclick="sendEmail('credit@azud.com', 'Contactar con Crédito - Término de pago solicitado de ${terminoPagoSolicitado} días requiere contacto con el departamento de crédito')">Contactar con Crédito</button>
+															  </div>`;
+				return;
+			}
+            let terminoPagoEstandar;
+            if (areaGeograficaParametrizada === "España") {
+                terminoPagoEstandar = 60;
+            } else if (areaGeograficaParametrizada === "UE") {
+                terminoPagoEstandar = 90;
+            } else if (areaGeograficaParametrizada === "Export") {
+                terminoPagoEstandar = 120;
+            }
+
+            let factorMultiplicador;
+            if (concentracionCompras === "A") {
+                factorMultiplicador = 0.75;
+            } else if (concentracionCompras === "B") {
+                factorMultiplicador = 0.35;
+            } else {
+                factorMultiplicador = 0;
+            }
+
+            let resultHTML = "";
+
+            // Alternativa 1: Crédito necesario con término de pago solicitado
+            const creditoNecesarioSolicitado = Math.ceil(potencialVentas / (factorMultiplicador * ((360 / terminoPagoSolicitado) - 1) + 1));
+            const interesSolicitado = ((terminoPagoSolicitado - terminoPagoEstandar) / 360) * 0.05;
+			
+			    if (interesSolicitado < 0) {
+            resultHTML += `<div class="card">
+                            <h3>Alternativa 1: Término de Pago Solicitado (${terminoPagoSolicitado}D)</h3>
+                            <p>Crédito Necesario: €${creditoNecesarioSolicitado.toLocaleString('es-ES')}</p>
+                            <p>Descuento por pronto pago aplicado: ${((interesSolicitado * 100).toFixed(2)*-1)}%</p>
+                            <button class="button" onclick="sendEmail('credit@azud.com', 'Término de Pago Solicitado: (${terminoPagoSolicitado}D)', ${creditoNecesarioSolicitado})">Elegir esta alternativa</button>
+                          </div>`;
+    } else {
+            resultHTML += `<div class="card">
+                            <h3>Alternativa 1: Término de Pago Solicitado (${terminoPagoSolicitado}D)</h3>
+                            <p>Crédito Necesario: €${creditoNecesarioSolicitado.toLocaleString('es-ES')}</p>
+                            <p>Interés Aplicado: ${(interesSolicitado * 100).toFixed(2)}%</p>
+                            <button class="button" onclick="sendEmail('credit@azud.com', 'Término de Pago Solicitado: (${terminoPagoSolicitado}D)', ${creditoNecesarioSolicitado})">Elegir esta alternativa</button>
+                          </div>`;
+
+			}
+			
+            // Alternativa 2: Crédito necesario con término de pago estándar
+            const creditoNecesarioEstandar = Math.ceil(potencialVentas / (factorMultiplicador * ((360 / terminoPagoEstandar) - 1) + 1));
+            resultHTML += `<div class="card">
+                            <h3>Alternativa 2: Término de Pago Estándar (${terminoPagoEstandar}D)</h3>
+                            <p>Crédito Necesario: €${creditoNecesarioEstandar.toLocaleString('es-ES')}</p>
+                            <p>Interés Aplicado: 0.00%</p>
+                            <button class="button" onclick="sendEmail('credit@azud.com', 'Término de Pago Estándar: (${terminoPagoEstandar}D)', ${creditoNecesarioEstandar})">Elegir esta alternativa</button>
+                          </div>`;
+
+            // Alternativa 3: Crédito necesario con término de pago a 0 días
+			const descuentoppestandar = ((0 - terminoPagoEstandar) / 360) * 0.05;
+            resultHTML += `<div class="card">
+                            <h3>Alternativa 3: Término de Pago a 0 Días</h3>
+                            <p>Crédito Necesario: €${creditoNecesarioEstandar.toLocaleString('es-ES')}</p>
+							<p>Descuento por pronto pago* : ${((descuentoppestandar * 100).toFixed(2)*-1)}%</p>
+							<p style="font-size:12px; color:red;">*El descuento se aplicará siempre y cuando el cliente tenga el crédito necesario.</p>
+                            <button class="button" onclick="sendEmail('credit@azud.com', 'Término de Pago a 0 Días', ${creditoNecesarioEstandar})">Elegir esta alternativa</button>
+                          </div>`;
+
+         document.getElementById("result").innerHTML = '<div class="header" style="margin-top:20px;"><h2>Elige la alternativa</h2></div>' + resultHTML;
+}
+
+        function sendEmail(email, alternativa, credito) {
+            // Recoger los datos de los inputs
+            const razonSocial = document.getElementById("razonSocial").value;
+            const cif = document.getElementById("cif").value;
+            const potencialVentas = document.getElementById("potencialVentas").value;
+            const terminoPagoSolicitado = document.getElementById("terminoPagoSolicitado").value;
+            const areaGeografica = document.getElementById("areaGeografica").value;
+			const pais = document.getElementById("pais").value;
+            const concentracionCompras = document.getElementById("concentracionCompras").value;
+			
+			    let concentracionComprasTexto = "";
+				if (concentracionCompras === "A") {
+					concentracionComprasTexto = "Ventas lineales (repartidas equitativamente a lo largo del año)";
+				} else if (concentracionCompras === "B") {
+					concentracionComprasTexto = "Ventas mixtas (Entre 40% y 80% en 2 meses)";
+				} else if (concentracionCompras === "C") {
+					concentracionComprasTexto = "Concentradas (mayor o igual a 80% en 2 meses)";
+				}
+				
+            // Crear el cuerpo del correo con un formato más estructurado
+            const subject = `SOLICITUD DE FINANCIACIÓN - ${razonSocial} ${cif}`;
+            const body = `
+            SOLICITUD DE FINANCIACIÓN - CLIENTE NUEVO
+            ------------------------------------------------------------
+            Razón Social: ${razonSocial}
+            CIF: ${cif}
+            Potencial de Ventas: €${potencialVentas}
+            Término de Pago Solicitado: ${terminoPagoSolicitado} días
+            Área Geográfica: ${areaGeografica}
+			País: ${pais}
+            Concentración de Compras: ${concentracionComprasTexto}
+            ------------------------------------------------------------
+            Alternativa seleccionada: ${alternativa}
+            Crédito Necesario: ${credito === 0 ? 'A definir por el departamento financiero' : `€${credito.toLocaleString('es-ES')}`}
+            ------------------------------------------------------------
+            `;
+
+            // Encode the email components
+            const mailtoLink = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+            window.location.href = mailtoLink;
+        }
+    </script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
