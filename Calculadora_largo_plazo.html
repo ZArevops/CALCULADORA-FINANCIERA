@@ -201,43 +201,47 @@
         let condiciones = {};
 
         function loadCSV() {
-            fetch('/base_proyectos.csv')
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('No se pudo cargar el archivo CSV. Verifique que la ruta sea correcta.');
-                    }
-                    return response.text();
-                })
-                .then(csvData => {
-                    Papa.parse(csvData, {
-                        download: false,
-                        header: true,
-                        complete: function(results) {
-                            condiciones = {}; // Resetear condiciones antes de cargar nuevos datos
-                            results.data.forEach(row => {
-                                if (row.Financiacion && row.Interes && row.Minimo && row.Pago_previo) {
-                                    const financiacionKey = row.Financiacion;
-                                    condiciones[financiacionKey] = {
-                                    interes: parseFloat(row.Interes.replace(',', '.')) * 100,
-                                        minImporte: parseFloat(row.Minimo),
-                                        minAporte: parseFloat(row.Pago_previo.replace(',', '.'))
-                                    };
-                                }
-                            });
-                        },
-                        error: function(error) {
-                            console.error("Error al analizar el archivo CSV: ", error);
-                            document.getElementById('result').innerHTML = "Error al analizar el archivo CSV.";
-                        }
-                    });
-                })
-                .catch(error => {
-                    console.error("Error al cargar el archivo CSV: ", error);
-                    document.getElementById('result').innerHTML = "Error al cargar el archivo CSV.";
-                });
-        }
+    // Datos CSV integrados directamente en el código
+    const csvData = `Financiacion;Interes;Minimo;Pago_previo
+AZUD 12;0,075;150000;0,15
+AZUD 18;0,085;150000;0,15
+AZUD 24;0,085;300000;0,15`;
 
-        loadCSV();
+    Papa.parse(csvData, {
+        delimiter: ";",  // Especificar el delimitador correcto
+        header: true,
+        complete: function(results) {
+            condiciones = {}; // Resetear condiciones antes de cargar nuevos datos
+            results.data.forEach(row => {
+                if (row.Financiacion && row.Interes && row.Minimo && row.Pago_previo) {
+                    const financiacionKey = row.Financiacion;
+                    condiciones[financiacionKey] = {
+                        interes: parseFloat(row.Interes.replace(',', '.')) * 100,
+                        minImporte: parseFloat(row.Minimo),
+                        minAporte: parseFloat(row.Pago_previo.replace(',', '.'))
+                    };
+                }
+            });
+            
+            // Opcional: establecer valor inicial del interés basado en la primera opción seleccionada
+            const plazoMeses = parseInt(document.getElementById('plazoMeses').value);
+            const condicionKey = `AZUD ${plazoMeses}`;
+            const condicion = condiciones[condicionKey];
+            
+            if (condicion) {
+                document.getElementById('interes').value = condicion.interes.toFixed(2);
+                document.getElementById('interesHint').textContent = `Interés recomendado por AZUD: ${(condicion.interes).toFixed(2)}%`;
+            }
+        },
+        error: function(error) {
+            console.error("Error al analizar el archivo CSV: ", error);
+            document.getElementById('result').innerHTML = "Error al analizar el archivo CSV.";
+        }
+    });
+}
+
+// No olvides llamar a la función al cargar la página
+loadCSV();
 
         document.getElementById('plazoMeses').addEventListener('change', function () {
             const plazoMeses = parseInt(document.getElementById('plazoMeses').value);
